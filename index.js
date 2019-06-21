@@ -90,7 +90,7 @@ function drawData( data, { plotGroup, xScale, yScale } ) {
         .attr( 'cy', d => yScale( yValue( d ) ) )
         .attr( 'fill', 'black' )
         .attr( 'fill-opacity', 0.5 )
-        .attr( 'r', d => 500 * d.count / maxCoaCount );
+        .attr( 'r', d => 100 * Math.sqrt((d.count / maxCoaCount)/Math.PI) );
 }
 
 function plot( rawData ) {
