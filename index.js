@@ -1,10 +1,5 @@
 console.log( 'test' );
 
-var margin = { top: 100, right: 100, bottom: 100, left: 100 },
-    width = 960 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
-
-
 function getDimensions( data ) {
     const partyTypes = Object.keys( data );
     const coas = Array.from(
@@ -22,7 +17,7 @@ function initializePlot( dimensions ) {
 
     const xLabel = 'Party Type';
     const yLabel = 'Cause of Action';
-    const margin = { left: 10, right: 10, top: 10, bottom: 10 };
+    const margin = { left: 100, right: 10, top: 10, bottom: 100 };
 
     const svg = d3.select( 'svg' );
     const width = svg.attr( 'width' );
@@ -33,10 +28,11 @@ function initializePlot( dimensions ) {
     const plotGroup = svg.append( 'g' )
         .attr( 'transform', `translate(${margin.left},${margin.top})` );
     const xAxisG = plotGroup.append( 'g' )
-        .attr( 'transform', `translate(0, ${innerHeight})` )
-        .attr( 'opacity', 0.2 );
+        .attr( 'class', 'x-axis' )
+        .attr( 'transform', `translate(0, ${innerHeight})` );
+
     const yAxisG = plotGroup.append( 'g' )
-        .attr( 'opacity', 0.2 );
+        .attr( 'class', 'y-axis' );
 
 
     xAxisG.append( 'text' )
@@ -58,12 +54,12 @@ function initializePlot( dimensions ) {
 
     const xAxis = d3.axisBottom()
         .scale( xScale )
-        .tickPadding( 15 )
+        .tickPadding( 0 )
         .tickSize( -innerHeight );
 
     const yAxis = d3.axisLeft()
         .scale( yScale )
-        .tickPadding( 15 )
+        .tickPadding( 0 )
         .tickSize( -innerWidth );
 
     xScale
@@ -76,6 +72,22 @@ function initializePlot( dimensions ) {
 
     xAxisG.call( xAxis );
     yAxisG.call( yAxis );
+
+    d3.selectAll('.tick text')
+        .on('mouseover', (text, index, nodeList)=>{ nodeList[index].parentElement.classList.add('active')} )
+        .on('mouseout', (text, index, nodeList)=>{ nodeList[index].parentElement.classList.remove('active')} );
+    d3.selectAll('.tick')
+        .append((text, index, nodeList)=>{
+            const textNodeBox = nodeList[index].querySelector('text').getBoundingClientRect();
+            const rect = document.createElement('rect');
+            d3.select(rect)
+                .attr('x',0)
+                .attr('y',0)
+                .attr('fill','#fff')
+                .attr('width',textNodeBox.width)
+                .attr('height',textNodeBox.height);
+            return rect;
+        });
 
     return { plotGroup, xScale, yScale };
 }
