@@ -8,7 +8,7 @@
             margin: 0px;
         }
 
-        .plot-container{
+        .plot-container {
             overflow: auto;
             width: 100%;
             height: 100%;
@@ -18,36 +18,55 @@
             overflow: visible;
             cursor: crosshair !important;
         }
+
         .domain {
             display: none;
-        }
-        .tick line {
-            stroke: #C0C0BB;
-        }
-        .tick text {
-            fill: #000000;
-            font-size: 0.5em;
-            font-family: sans-serif;
-            transition: font-size .1s;
         }
         .axis-label {
             fill: #000;
             font-size: 1.5em;
             font-family: sans-serif;
         }
-        .x-axis .tick text, .x-axis .tick rect {
+
+
+
+        .tick line {
+            stroke: #C0C0BB;
+        }
+
+        .tick text {
+            fill: #000000;
+            font-size: 0.5em;
+            font-family: sans-serif;
+            transition: font-size .1s;
+        }
+        .x-axis .tick text {
             text-anchor: end;
-            transform: rotate(-90deg) translate(-5px,-0.5em);
+            transform: rotate(-90deg) translate(-5px, -0.5em);
         }
-        .y-axis .tick text, .y-axis .tick rect {
-            transform: translate(-5px,0);
+
+        .y-axis .tick text {
+            transform: translate(-5px, 0);
         }
+
+        .tick text, .tick rect {
+            transition: font-size .1s, transform .1s;
+        }
+        .x-axis .tick rect {
+            transform: rotate(90deg) translate(5px, -0.25em);
+        }
+
+
         .tick.active text {
-            font-size: 1em;
+            font-size: 1.5em;
         }
+
         .tick.active rect {
-            transform: scale(1.5);
+            transform: rotate(90deg) translate(5px, -0.5em) scale(3);
         }
+
+
+
     </style>
 </head>
 <body>

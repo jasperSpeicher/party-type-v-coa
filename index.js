@@ -148,17 +148,17 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
 
     // style the tick labels
     d3.selectAll( '.tick' )
-        .append( ( text, index, nodeList ) => {
+        .insert( ( text, index, nodeList ) => {
             const textNodeBox = nodeList[ index ].querySelector( 'text' ).getBoundingClientRect();
-            const rect = document.createElement( 'rect' );
+            const rect = document.createElementNS( 'http://www.w3.org/2000/svg','rect' );
             d3.select( rect )
                 .attr( 'x', 0 )
                 .attr( 'y', 0 )
                 .attr( 'fill', '#fff' )
-                .attr( 'width', textNodeBox.width )
-                .attr( 'height', textNodeBox.height );
+                .attr( 'width', textNodeBox.height )
+                .attr( 'height', textNodeBox.width );
             return rect;
-        } );
+        }, ':first-child');
 
     // add mouse handlers
     const plotSvg = getPlotSvg();
@@ -182,6 +182,7 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
             const tickElement = ticksByText[ nearestLabel.text ];
             if ( tickElement ) {
                 tickElement.classList.add( 'active' );
+                tickElement.parentNode.append( tickElement );
                 if ( activeTickElement && (tickElement !== activeTickElement) ) {
                     activeTickElement.classList.remove( 'active' );
                 }
