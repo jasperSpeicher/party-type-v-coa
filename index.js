@@ -150,15 +150,20 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
     d3.selectAll( '.tick' )
         .insert( ( text, index, nodeList ) => {
             const textNodeBox = nodeList[ index ].querySelector( 'text' ).getBoundingClientRect();
-            const rect = document.createElementNS( 'http://www.w3.org/2000/svg','rect' );
+            const rect = document.createElementNS( 'http://www.w3.org/2000/svg', 'rect' );
             d3.select( rect )
                 .attr( 'x', 0 )
                 .attr( 'y', 0 )
-                .attr( 'fill', '#fff' )
-                .attr( 'width', textNodeBox.height )
-                .attr( 'height', textNodeBox.width );
+                .attr( 'fill', '#fff' );
             return rect;
-        }, ':first-child');
+        }, ':first-child' );
+    d3.selectAll( '.x-axis .tick rect' )
+        .attr( 'width', ( text, index, nodeList ) => nodeList[ index ].parentNode.querySelector( 'text' ).getBoundingClientRect().height )
+        .attr( 'height', ( text, index, nodeList ) => nodeList[ index ].parentNode.querySelector( 'text' ).getBoundingClientRect().width );
+    d3.selectAll( '.y-axis .tick rect' )
+        .attr( 'width', ( text, index, nodeList ) => nodeList[ index ].parentNode.querySelector( 'text' ).getBoundingClientRect().width )
+        .attr( 'height', ( text, index, nodeList ) => nodeList[ index ].parentNode.querySelector( 'text' ).getBoundingClientRect().height );
+
 
     // add mouse handlers
     const plotSvg = getPlotSvg();
@@ -168,26 +173,42 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
         .forEach( function ( n ) {
             ticksByText[ n.innerHTML ] = n.parentElement;
         } );
-    let activeTickElement = null;
+    let activeTickElements = [ null, null ];
     plotSvg
         .addEventListener( 'mousemove', function ( e ) {
             var x = e.pageX - plotSvg.getBoundingClientRect().x - config.margin.left;
-            const nearestLabel = xTickPositions.reduce( ( result, pos, index ) => {
-                const distance = Math.abs( x - pos );
-                if ( result.distance > distance ) {
-                    return { distance, text: dimensionLabels.partyTypes[ index ] };
+            var y = e.pageY - plotSvg.getBoundingClientRect().y - config.margin.top;
+
+            const getNearestLabel = ( positions, mouseCoordinate, labels ) => {
+                return positions
+                    .reduce( ( result, pos, index ) => {
+                        const distance = Math.abs( mouseCoordinate - pos );
+                        if ( result.distance > distance ) {
+                            return { distance, text: labels[ index ] };
+                        }
+                        return result;
+                    }, { distance: Infinity, label: null } )
+            };
+
+            const nearestLabels = {
+                x: getNearestLabel( xTickPositions, x, dimensionLabels.partyTypes ),
+                y: getNearestLabel( yTickPositions, y, dimensionLabels.coas )
+            };
+            const tickElements = [
+                ticksByText[ nearestLabels.x.text ],
+                ticksByText[ nearestLabels.y.text ]
+            ];
+
+            tickElements.forEach( ( tickElement, index ) => {
+                if ( tickElement ) {
+                    tickElement.classList.add( 'active' );
+                    tickElement.parentNode.append( tickElement );
+                    if ( activeTickElements[index] && (tickElement !== activeTickElements[index]) ) {
+                        activeTickElements[index].classList.remove( 'active' );
+                    }
+                    activeTickElements[index] = tickElement;
                 }
-                return result;
-            }, { distance: Infinity, label: null } );
-            const tickElement = ticksByText[ nearestLabel.text ];
-            if ( tickElement ) {
-                tickElement.classList.add( 'active' );
-                tickElement.parentNode.append( tickElement );
-                if ( activeTickElement && (tickElement !== activeTickElement) ) {
-                    activeTickElement.classList.remove( 'active' );
-                }
-                activeTickElement = tickElement;
-            }
+            } );
         } );
 
     return { xScale, yScale };
@@ -202,7 +223,7 @@ function plot( rawData ) {
         return results;
     }, [] );
 
-    const config = { margin: { left: 200, right: 10, top: 30, bottom: 200 } };
+    const config = { margin: { left: 300, right: 10, top: 30, bottom: 300 } };
 
     const plotComponents = initializePlot( dimensionLabels, config );
 
