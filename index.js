@@ -1,6 +1,4 @@
-console.log( 'test' );
-
-function getDimensions( data ) {
+function getDimensionLabels( data ) {
     const partyTypes = Object.keys( data );
     const coas = Array.from(
         partyTypes
@@ -13,44 +11,125 @@ function getDimensions( data ) {
     return { partyTypes, coas };
 }
 
-function initializePlot( dimensions ) {
+function initializePlot( dimensionLabels, config ) {
 
-    const xLabel = 'Party Type';
-    const yLabel = 'Cause of Action';
-    const margin = { left: 100, right: 10, top: 10, bottom: 100 };
+    const svg = d3.select( 'svg' );
+    const plotGroup = svg.append( 'g' )
+        .attr( 'transform', `translate(${config.margin.left},${config.margin.top})` );
 
+    const drawGroup = plotGroup.append( 'g' )
+        .attr( 'class', 'draw' );
+
+    const xAxisGroup = plotGroup.append( 'g' )
+        .attr( 'class', 'x-axis' );
+
+    const yAxisGroup = plotGroup.append( 'g' )
+        .attr( 'class', 'y-axis' );
+
+    return { plotGroup, drawGroup, xAxisGroup, yAxisGroup };
+}
+
+function datumSize( maxCoaCount ) {
+    return d => 100 * Math.sqrt( (d.count / maxCoaCount) / Math.PI );
+}
+
+function drawData( data, { plotGroup, drawGroup }, scales ) {
+    const maxCoaCount = Math.max( ...data.map( d => d.count ) );
+    const xValue = d => d.partyType;
+    const yValue = d => d.coa;
+    drawGroup.selectAll( 'circle' ).data( data )
+        .enter().append( 'circle' )
+        .attr( 'cx', d => scales.xScale( xValue( d ) ) )
+        .attr( 'cy', d => scales.yScale( yValue( d ) ) )
+        .attr( 'fill', 'black' )
+        .attr( 'fill-opacity', 0.5 )
+        .attr( 'r', datumSize( maxCoaCount ) );
+}
+
+function getPlotSvg() {
+    return document.querySelector( '.plot-container svg' );
+}
+
+function getSvgDims() {
     const svg = d3.select( 'svg' );
     const width = svg.attr( 'width' );
     const height = svg.attr( 'height' );
-    const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
+    return { width, height };
+}
 
-    const plotGroup = svg.append( 'g' )
-        .attr( 'transform', `translate(${margin.left},${margin.top})` );
-    const xAxisG = plotGroup.append( 'g' )
-        .attr( 'class', 'x-axis' )
-        .attr( 'transform', `translate(0, ${innerHeight})` );
+function setSvgDims( { width, height } ) {
+    const svg = d3.select( 'svg' );
+    svg.attr( 'width', width );
+    svg.attr( 'height', height );
+}
 
-    const yAxisG = plotGroup.append( 'g' )
-        .attr( 'class', 'y-axis' );
+function sum( array ) {
+    return array.reduce( ( sum, v ) => { // get sum
+        return sum + v;
+    }, 0 );
+}
+
+function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, config ) {
+
+    // compute the widths of the ticks and the plot based on the data
+    const maxCoaCountByPartyType = dimensionLabels.partyTypes.map( ( partyType ) => {
+        return Math.max( ...(Object.keys( rawData[ partyType ] ).map( coa => rawData[ partyType ][ coa ] )) );
+    } );
+    const maxCoaCountByCoa = dimensionLabels.coas.map( ( coa ) => {
+        return Math.max( ...(plotData.filter( d => d.coa === coa ).map( d => d.count )) );
+    } );
+    const maxCoaCount = Math.max( ...maxCoaCountByPartyType );
+    const countToWidth = count => datumSize( maxCoaCount )( { count } ) * 2;
+    const widthsByPartyType = maxCoaCountByPartyType.map( countToWidth );
+    const widthsByCoa = maxCoaCountByCoa.map( countToWidth );
+
+    const positionsFromWidths = ( width, index, array ) => {
+        // take all up to this index
+        return sum( array.slice( 0, index ) ) + array[ index ] / 2; // add half of current width
+    };
+
+    const xTickPositions = widthsByPartyType.map( positionsFromWidths );
+    const yTickPositions = widthsByCoa.map( positionsFromWidths );
+
+    const innerWidth = Math.round( sum( widthsByPartyType ) );
+    const innerHeight = Math.round( sum( widthsByCoa ) );
+    const svgDims = {
+        width: innerWidth + config.margin.left + config.margin.right,
+        height: innerHeight + config.margin.top + config.margin.bottom
+    };
+
+    // create the scales
+    const xScale = d3.scaleOrdinal();
+    const yScale = d3.scaleOrdinal();
+    xScale
+        .domain( dimensionLabels.partyTypes )
+        .range( xTickPositions );
+
+    yScale
+        .domain( dimensionLabels.coas )
+        .range( yTickPositions );
 
 
-    xAxisG.append( 'text' )
+    // label and position the axes
+    const xLabel = 'Party Type';
+    const yLabel = 'Cause of Action';
+
+    plotComponents.xAxisGroup.attr( 'transform', `translate(0, ${innerHeight})` );
+
+    plotComponents.xAxisGroup.append( 'text' )
         .attr( 'class', 'axis-label' )
-        .attr( 'x', innerWidth / 2 )
-        .attr( 'y', 90 )
+        .attr( 'x', 0 )
+        .attr( 'y', -10 )
+        .attr( 'transform', `translate(0, ${innerHeight})` )
+        .style( 'text-anchor', 'end' )
         .text( xLabel );
 
-    yAxisG.append( 'text' )
+    plotComponents.yAxisGroup.append( 'text' )
         .attr( 'class', 'axis-label' )
-        .attr( 'x', -innerHeight / 2 )
-        .attr( 'y', -100 )
-        .attr( 'transform', `rotate(-90)` )
-        .style( 'text-anchor', 'middle' )
+        .attr( 'x', 0 )
+        .attr( 'y', -10 )
+        .style( 'text-anchor', 'end' )
         .text( yLabel );
-
-    const xScale = d3.scalePoint();
-    const yScale = d3.scalePoint();
 
     const xAxis = d3.axisBottom()
         .scale( xScale )
@@ -62,60 +141,72 @@ function initializePlot( dimensions ) {
         .tickPadding( 0 )
         .tickSize( -innerWidth );
 
-    xScale
-        .domain( dimensions.partyTypes )
-        .range( [ 0, innerWidth ] );
+    plotComponents.xAxisGroup.call( xAxis );
+    plotComponents.yAxisGroup.call( yAxis );
 
-    yScale
-        .domain( dimensions.coas )
-        .range( [ innerHeight, 0 ] );
+    setSvgDims( svgDims );
 
-    xAxisG.call( xAxis );
-    yAxisG.call( yAxis );
-
-    d3.selectAll('.tick text')
-        .on('mouseover', (text, index, nodeList)=>{ nodeList[index].parentElement.classList.add('active')} )
-        .on('mouseout', (text, index, nodeList)=>{ nodeList[index].parentElement.classList.remove('active')} );
-    d3.selectAll('.tick')
-        .append((text, index, nodeList)=>{
-            const textNodeBox = nodeList[index].querySelector('text').getBoundingClientRect();
-            const rect = document.createElement('rect');
-            d3.select(rect)
-                .attr('x',0)
-                .attr('y',0)
-                .attr('fill','#fff')
-                .attr('width',textNodeBox.width)
-                .attr('height',textNodeBox.height);
+    // style the tick labels
+    d3.selectAll( '.tick' )
+        .append( ( text, index, nodeList ) => {
+            const textNodeBox = nodeList[ index ].querySelector( 'text' ).getBoundingClientRect();
+            const rect = document.createElement( 'rect' );
+            d3.select( rect )
+                .attr( 'x', 0 )
+                .attr( 'y', 0 )
+                .attr( 'fill', '#fff' )
+                .attr( 'width', textNodeBox.width )
+                .attr( 'height', textNodeBox.height );
             return rect;
-        });
+        } );
 
-    return { plotGroup, xScale, yScale };
-}
+    // add mouse handlers
+    const plotSvg = getPlotSvg();
+    const ticksByText = {};
+    d3.selectAll( ".tick>text" )
+        .nodes()
+        .forEach( function ( n ) {
+            ticksByText[ n.innerHTML ] = n.parentElement;
+        } );
+    let activeTickElement = null;
+    plotSvg
+        .addEventListener( 'mousemove', function ( e ) {
+            var x = e.pageX - plotSvg.getBoundingClientRect().x - config.margin.left;
+            const nearestLabel = xTickPositions.reduce( ( result, pos, index ) => {
+                const distance = Math.abs( x - pos );
+                if ( result.distance > distance ) {
+                    return { distance, text: dimensionLabels.partyTypes[ index ] };
+                }
+                return result;
+            }, { distance: Infinity, label: null } );
+            const tickElement = ticksByText[ nearestLabel.text ];
+            if ( tickElement ) {
+                tickElement.classList.add( 'active' );
+                if ( activeTickElement && (tickElement !== activeTickElement) ) {
+                    activeTickElement.classList.remove( 'active' );
+                }
+                activeTickElement = tickElement;
+            }
+        } );
 
-function drawData( data, { plotGroup, xScale, yScale } ) {
-    const xValue = d => d.partyType;
-    const yValue = d => d.coa;
-    const maxCoaCount = Math.max( ...data.map( d => d.count ) );
-    plotGroup.selectAll( 'circle' ).data( data )
-        .enter().append( 'circle' )
-        .attr( 'cx', d => xScale( xValue( d ) ) )
-        .attr( 'cy', d => yScale( yValue( d ) ) )
-        .attr( 'fill', 'black' )
-        .attr( 'fill-opacity', 0.5 )
-        .attr( 'r', d => 100 * Math.sqrt((d.count / maxCoaCount)/Math.PI) );
+    return { xScale, yScale };
 }
 
 function plot( rawData ) {
-    const dimensions = getDimensions( rawData );
-    const plotComponents = initializePlot( dimensions );
-    const plotData = dimensions.partyTypes.reduce( ( results, partyType ) => {
+    const dimensionLabels = getDimensionLabels( rawData );
+    const plotData = dimensionLabels.partyTypes.reduce( ( results, partyType ) => {
         const coaCounts = rawData[ partyType ];
         const coas = Object.keys( coaCounts );
         coas.forEach( coa => results.push( { coa, partyType, count: coaCounts[ coa ] } ) );
         return results;
     }, [] );
-    console.log( plotData );
-    drawData( plotData, plotComponents );
+
+    const config = { margin: { left: 200, right: 10, top: 30, bottom: 200 } };
+
+    const plotComponents = initializePlot( dimensionLabels, config );
+
+    const scales = initializeAxes( rawData, plotData, dimensionLabels, plotComponents, config );
+    drawData( plotData, plotComponents, scales );
 }
 
 
