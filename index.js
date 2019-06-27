@@ -13,18 +13,22 @@ function getDimensionLabels( data ) {
 
 function initializePlot( dimensionLabels, config ) {
 
-    const svg = d3.select( 'svg' );
-    const plotGroup = svg.append( 'g' )
+    const plotSvg = d3.select( getPlotSvg() );
+    const xAxisSvg = d3.select( getXAxisSvg() );
+
+    const plotGroup = plotSvg.append( 'g' )
         .attr( 'transform', `translate(${config.margin.left},${config.margin.top})` );
 
     const drawGroup = plotGroup.append( 'g' )
         .attr( 'class', 'draw' );
 
-    const xAxisGroup = plotGroup.append( 'g' )
-        .attr( 'class', 'x-axis' );
-
     const yAxisGroup = plotGroup.append( 'g' )
         .attr( 'class', 'y-axis' );
+
+    const xAxisGroup = xAxisSvg.append( 'g' )
+        .attr( 'transform', `translate(${config.margin.left},${config.margin.top})` )
+        .append( 'g' )
+        .attr( 'class', 'x-axis' );
 
     return { plotGroup, drawGroup, xAxisGroup, yAxisGroup };
 }
@@ -50,6 +54,10 @@ function getPlotSvg() {
     return document.querySelector( '.plot-container svg' );
 }
 
+function getXAxisSvg() {
+    return document.querySelector( '.x-axis-container svg' );
+}
+
 function getSvgDims() {
     const svg = d3.select( 'svg' );
     const width = svg.attr( 'width' );
@@ -58,9 +66,12 @@ function getSvgDims() {
 }
 
 function setSvgDims( { width, height } ) {
-    const svg = d3.select( 'svg' );
-    svg.attr( 'width', width );
-    svg.attr( 'height', height );
+    const plotSvg = d3.select( '.plot-container svg' );
+    const xAxisSvg = d3.select( '.x-axis-container svg' );
+    plotSvg.attr( 'width', width );
+    plotSvg.attr( 'height', height );
+    xAxisSvg.attr( 'width', width );
+    xAxisSvg.attr( 'height', height );
 }
 
 function sum( array ) {
@@ -120,13 +131,12 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
         .attr( 'class', 'axis-label' )
         .attr( 'x', 0 )
         .attr( 'y', -10 )
-        .attr( 'transform', `translate(0, ${innerHeight})` )
         .style( 'text-anchor', 'end' )
         .text( xLabel );
 
     plotComponents.yAxisGroup.append( 'text' )
         .attr( 'class', 'axis-label' )
-        .attr( 'x', 0 )
+        .attr( 'x', -5 )
         .attr( 'y', -10 )
         .style( 'text-anchor', 'end' )
         .text( yLabel );
@@ -203,10 +213,10 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
                 if ( tickElement ) {
                     tickElement.classList.add( 'active' );
                     tickElement.parentNode.append( tickElement );
-                    if ( activeTickElements[index] && (tickElement !== activeTickElements[index]) ) {
-                        activeTickElements[index].classList.remove( 'active' );
+                    if ( activeTickElements[ index ] && (tickElement !== activeTickElements[ index ]) ) {
+                        activeTickElements[ index ].classList.remove( 'active' );
                     }
-                    activeTickElements[index] = tickElement;
+                    activeTickElements[ index ] = tickElement;
                 }
             } );
         } );
