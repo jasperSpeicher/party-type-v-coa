@@ -159,7 +159,6 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
     // style the tick labels
     d3.selectAll( '.tick' )
         .insert( ( text, index, nodeList ) => {
-            const textNodeBox = nodeList[ index ].querySelector( 'text' ).getBoundingClientRect();
             const rect = document.createElementNS( 'http://www.w3.org/2000/svg', 'rect' );
             d3.select( rect )
                 .attr( 'x', 0 )
@@ -175,8 +174,26 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
         .attr( 'height', ( text, index, nodeList ) => nodeList[ index ].parentNode.querySelector( 'text' ).getBoundingClientRect().height );
 
 
-    // add mouse handlers
+    return { xScale, yScale, tickPositions: { x: xTickPositions, y: yTickPositions } };
+}
+
+function initializeMouseHandlers( dimensionLabels, plotData, config, tickPositions ) {
     const plotSvg = getPlotSvg();
+    const selectionsByDimensionLabel = { coa: {}, partyType: {} };
+    dimensionLabels.coas.reduce( ( map, coa ) => {
+        map.coa[ coa ] = d3.select( plotSvg )
+            .selectAll( 'circle' )
+            .data( plotData )
+            .filter( d => d.coa === coa );
+        return map;
+    }, selectionsByDimensionLabel );
+    dimensionLabels.partyTypes.reduce( ( map, partyType ) => {
+        map.partyType[ partyType ] = d3.select( plotSvg )
+            .selectAll( 'circle' )
+            .data( plotData )
+            .filter( d => d.partyType === partyType );
+        return map;
+    }, selectionsByDimensionLabel );
     const ticksByText = {};
     d3.selectAll( ".tick>text" )
         .nodes()
@@ -184,10 +201,11 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
             ticksByText[ n.innerHTML ] = n.parentElement;
         } );
     let activeTickElements = [ null, null ];
+    let activeSelections = null;
     plotSvg
         .addEventListener( 'mousemove', function ( e ) {
-            var x = e.pageX - plotSvg.getBoundingClientRect().x - config.margin.left;
-            var y = e.pageY - plotSvg.getBoundingClientRect().y - config.margin.top;
+            const x = e.pageX - plotSvg.getBoundingClientRect().x - config.margin.left;
+            const y = e.pageY - plotSvg.getBoundingClientRect().y - config.margin.top;
 
             const getNearestLabel = ( positions, mouseCoordinate, labels ) => {
                 return positions
@@ -200,13 +218,14 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
                     }, { distance: Infinity, label: null } )
             };
 
+            // hover the axes
             const nearestLabels = {
-                x: getNearestLabel( xTickPositions, x, dimensionLabels.partyTypes ),
-                y: getNearestLabel( yTickPositions, y, dimensionLabels.coas )
+                partyType: getNearestLabel( tickPositions.x, x, dimensionLabels.partyTypes ),
+                coa: getNearestLabel( tickPositions.y, y, dimensionLabels.coas )
             };
             const tickElements = [
-                ticksByText[ nearestLabels.x.text ],
-                ticksByText[ nearestLabels.y.text ]
+                ticksByText[ nearestLabels.partyType.text ],
+                ticksByText[ nearestLabels.coa.text ]
             ];
 
             tickElements.forEach( ( tickElement, index ) => {
@@ -219,9 +238,28 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
                     activeTickElements[ index ] = tickElement;
                 }
             } );
-        } );
 
-    return { xScale, yScale };
+            // hover the data
+            if ( activeSelections ) {
+                activeSelections.coa
+                    .attr( 'fill', 'black' );
+                activeSelections.partyType
+                    .attr( 'fill', 'black' );
+            }
+
+            const highlightColor = '#000dba';
+            const selections = {
+                coa: selectionsByDimensionLabel.coa[ nearestLabels.coa.text ],
+                partyType: selectionsByDimensionLabel.partyType[ nearestLabels.partyType.text ]
+            };
+            selections.coa
+                .attr( 'fill', highlightColor );
+            selections.partyType
+                .attr( 'fill', highlightColor );
+
+            activeSelections = selections;
+
+        } );
 }
 
 function plot( rawData ) {
@@ -234,11 +272,10 @@ function plot( rawData ) {
     }, [] );
 
     const config = { margin: { left: 300, right: 10, top: 30, bottom: 300 } };
-
     const plotComponents = initializePlot( dimensionLabels, config );
-
     const scales = initializeAxes( rawData, plotData, dimensionLabels, plotComponents, config );
     drawData( plotData, plotComponents, scales );
+    initializeMouseHandlers( dimensionLabels, plotData, config, scales.tickPositions );
 }
 
 

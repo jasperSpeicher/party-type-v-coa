@@ -58,7 +58,7 @@
 
         .tick line {
             stroke: #C0C0BB;
-            opacity: 0.5;
+            opacity: 0.1;
         }
 
         .tick text {
@@ -90,7 +90,9 @@
         .tick.active text {
             font-size: 1.5em;
         }
-
+        .tick.active line {
+            opacity: 1;
+        }
         .x-axis .tick.active rect {
             transform: rotate(90deg) translate(5px, -0.5em) scale(2.2);
         }
