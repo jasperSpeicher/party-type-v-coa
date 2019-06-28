@@ -10,50 +10,85 @@
         }
 
         .plot-container {
+            position: relative;
             overflow: auto;
-            width: 100%;
-            height: 100%;
+            z-index: 0;
         }
 
         .plot-container svg {
             overflow: visible;
             cursor: crosshair !important;
         }
+
         .x-axis-container {
             position: fixed;
             bottom: 0;
             left: 0;
+            right: 0;
             pointer-events: none;
+            z-index: 2;
+            overflow: auto;
         }
-        .x-axis-container::before {
+
+        .y-axis-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .y-axis-container::before {
             content: ' ';
             display: block;
             position: absolute;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100%;
+            background-color: #fff;
+            opacity: 0.9;
+            z-index: 0;
+        }
+
+        .x-axis-container-background{
+            display: block;
+            position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 300px;
+            height: 310px;
             background-color: #fff;
-            opacity: 0.8;
-            z-index: 0;
+            opacity: 0.9;
+            z-index: 1;
         }
+
         .x-axis-container > svg {
             position: relative;
+            z-index: 1;
+        }
+
+        .y-axis-container > svg {
+            position: relative;
+            width: 100%;
             z-index: 1;
         }
 
         .domain {
             display: none;
         }
+
         .axis-label {
             fill: #000;
             font-size: 1.5em;
             font-family: sans-serif;
         }
+
         .x-axis .axis-label {
             transform: rotate(-90deg) translate(-5px, -5px);
         }
-
 
 
         .tick line {
@@ -72,6 +107,7 @@
             text-anchor: end;
             transform: rotate(-90deg) translate(-5px, -0.5em);
         }
+
         .y-axis .tick text {
             transform: translate(-5px, 0);
         }
@@ -79,9 +115,11 @@
         .tick text, .tick rect {
             transition: font-size .1s, transform .1s;
         }
+
         .x-axis .tick rect {
             transform: rotate(90deg) translate(5px, -0.25em);
         }
+
         .y-axis .tick rect {
             transform: rotate(-180deg) translate(5px, -0.25em);
         }
@@ -90,16 +128,18 @@
         .tick.active text {
             font-size: 1.5em;
         }
+
         .tick.active line {
             opacity: 1;
         }
+
         .x-axis .tick.active rect {
             transform: rotate(90deg) translate(5px, -0.5em) scale(2.2);
         }
+
         .y-axis .tick.active rect {
             transform: rotate(-180deg) translate(5px, -0.85em) scale(3);
         }
-
 
 
     </style>
@@ -107,6 +147,11 @@
 <body>
 <div class="plot-container">
     <svg width="1600" height="800"></svg>
+</div>
+<div class="y-axis-container">
+    <svg width="1600" height="800"></svg>
+</div>
+<div class="x-axis-container-background">
 </div>
 <div class="x-axis-container">
     <svg width="1600" height="800"></svg>

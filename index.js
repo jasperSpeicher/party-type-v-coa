@@ -15,6 +15,7 @@ function initializePlot( dimensionLabels, config ) {
 
     const plotSvg = d3.select( getPlotSvg() );
     const xAxisSvg = d3.select( getXAxisSvg() );
+    const yAxisSvg = d3.select( getYAxisSvg() );
 
     const plotGroup = plotSvg.append( 'g' )
         .attr( 'transform', `translate(${config.margin.left},${config.margin.top})` );
@@ -22,7 +23,9 @@ function initializePlot( dimensionLabels, config ) {
     const drawGroup = plotGroup.append( 'g' )
         .attr( 'class', 'draw' );
 
-    const yAxisGroup = plotGroup.append( 'g' )
+    const yAxisGroup = yAxisSvg.append( 'g' )
+        .attr( 'transform', `translate(${config.margin.left},${config.margin.top})` )
+        .append( 'g' )
         .attr( 'class', 'y-axis' );
 
     const xAxisGroup = xAxisSvg.append( 'g' )
@@ -58,6 +61,10 @@ function getXAxisSvg() {
     return document.querySelector( '.x-axis-container svg' );
 }
 
+function getYAxisSvg() {
+    return document.querySelector( '.y-axis-container svg' );
+}
+
 function getSvgDims() {
     const svg = d3.select( 'svg' );
     const width = svg.attr( 'width' );
@@ -68,10 +75,13 @@ function getSvgDims() {
 function setSvgDims( { width, height } ) {
     const plotSvg = d3.select( '.plot-container svg' );
     const xAxisSvg = d3.select( '.x-axis-container svg' );
+    const yAxisSvg = d3.select( '.y-axis-container svg' );
     plotSvg.attr( 'width', width );
     plotSvg.attr( 'height', height );
     xAxisSvg.attr( 'width', width );
     xAxisSvg.attr( 'height', height );
+    yAxisSvg.attr( 'width', width );
+    yAxisSvg.attr( 'height', height );
 }
 
 function sum( array ) {
@@ -202,64 +212,89 @@ function initializeMouseHandlers( dimensionLabels, plotData, config, tickPositio
         } );
     let activeTickElements = [ null, null ];
     let activeSelections = null;
-    plotSvg
-        .addEventListener( 'mousemove', function ( e ) {
-            const x = e.pageX - plotSvg.getBoundingClientRect().x - config.margin.left;
-            const y = e.pageY - plotSvg.getBoundingClientRect().y - config.margin.top;
+    const html = document.querySelector( 'html' );
+    const xAxisElement = document.querySelector( '.x-axis-container' );
+    const plotElement = document.querySelector( '.plot-container' );
+    let lastMouseEvent = null;
+    const mouseMove = function ( e ) {
+        const x = e.clientX - plotSvg.getBoundingClientRect().x - config.margin.left;
+        const y = e.clientY - plotSvg.getBoundingClientRect().y - config.margin.top;
+        if ( !e.fake ) {
+            lastMouseEvent = e;
+        }
 
-            const getNearestLabel = ( positions, mouseCoordinate, labels ) => {
-                return positions
-                    .reduce( ( result, pos, index ) => {
-                        const distance = Math.abs( mouseCoordinate - pos );
-                        if ( result.distance > distance ) {
-                            return { distance, text: labels[ index ] };
-                        }
-                        return result;
-                    }, { distance: Infinity, label: null } )
-            };
-
-            // hover the axes
-            const nearestLabels = {
-                partyType: getNearestLabel( tickPositions.x, x, dimensionLabels.partyTypes ),
-                coa: getNearestLabel( tickPositions.y, y, dimensionLabels.coas )
-            };
-            const tickElements = [
-                ticksByText[ nearestLabels.partyType.text ],
-                ticksByText[ nearestLabels.coa.text ]
-            ];
-
-            tickElements.forEach( ( tickElement, index ) => {
-                if ( tickElement ) {
-                    tickElement.classList.add( 'active' );
-                    tickElement.parentNode.append( tickElement );
-                    if ( activeTickElements[ index ] && (tickElement !== activeTickElements[ index ]) ) {
-                        activeTickElements[ index ].classList.remove( 'active' );
+        const getNearestLabel = ( positions, mouseCoordinate, labels ) => {
+            return positions
+                .reduce( ( result, pos, index ) => {
+                    const distance = Math.abs( mouseCoordinate - pos );
+                    if ( result.distance > distance ) {
+                        return { distance, text: labels[ index ] };
                     }
-                    activeTickElements[ index ] = tickElement;
+                    return result;
+                }, { distance: Infinity, label: null } )
+        };
+
+        // hover the axes
+        const nearestLabels = {
+            partyType: getNearestLabel( tickPositions.x, x, dimensionLabels.partyTypes ),
+            coa: getNearestLabel( tickPositions.y, y, dimensionLabels.coas )
+        };
+        const tickElements = [
+            ticksByText[ nearestLabels.partyType.text ],
+            ticksByText[ nearestLabels.coa.text ]
+        ];
+
+        tickElements.forEach( ( tickElement, index ) => {
+            if ( tickElement ) {
+                tickElement.classList.add( 'active' );
+                tickElement.parentNode.append( tickElement );
+                if ( activeTickElements[ index ] && (tickElement !== activeTickElements[ index ]) ) {
+                    activeTickElements[ index ].classList.remove( 'active' );
                 }
-            } );
-
-            // hover the data
-            if ( activeSelections ) {
-                activeSelections.coa
-                    .attr( 'fill', 'black' );
-                activeSelections.partyType
-                    .attr( 'fill', 'black' );
+                activeTickElements[ index ] = tickElement;
             }
-
-            const highlightColor = '#000dba';
-            const selections = {
-                coa: selectionsByDimensionLabel.coa[ nearestLabels.coa.text ],
-                partyType: selectionsByDimensionLabel.partyType[ nearestLabels.partyType.text ]
-            };
-            selections.coa
-                .attr( 'fill', highlightColor );
-            selections.partyType
-                .attr( 'fill', highlightColor );
-
-            activeSelections = selections;
-
         } );
+
+        // hover the data
+        if ( activeSelections ) {
+            activeSelections.coa
+                .attr( 'fill', 'black' );
+            activeSelections.partyType
+                .attr( 'fill', 'black' );
+        }
+
+        const highlightColor = '#000dba';
+        const selections = {
+            coa: selectionsByDimensionLabel.coa[ nearestLabels.coa.text ],
+            partyType: selectionsByDimensionLabel.partyType[ nearestLabels.partyType.text ]
+        };
+        selections.coa
+            .attr( 'fill', highlightColor );
+        selections.partyType
+            .attr( 'fill', highlightColor );
+
+        activeSelections = selections;
+
+    };
+    plotSvg
+        .addEventListener( 'mousemove', mouseMove );
+
+    const triggerMove = function () {
+        if ( lastMouseEvent ) {
+            mouseMove( {
+                clientX: lastMouseEvent.clientX,
+                clientY: lastMouseEvent.clientY,
+                fake: true
+            } );
+        }
+    }
+    plotElement.addEventListener( 'scroll', triggerMove );
+    document.addEventListener( 'scroll', triggerMove );
+
+    // keep x scrolling with plot
+    plotElement.addEventListener( 'scroll', ( e ) => {
+        xAxisElement.scrollTo( plotElement.scrollLeft, 0 );
+    } );
 }
 
 function plot( rawData ) {
