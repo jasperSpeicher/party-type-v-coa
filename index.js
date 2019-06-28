@@ -189,6 +189,7 @@ function initializeAxes( rawData, plotData, dimensionLabels, plotComponents, con
 
 function initializeMouseHandlers( dimensionLabels, plotData, config, tickPositions ) {
     const plotSvg = getPlotSvg();
+    const percentileElement = document.querySelector( '.info-box' );
     const selectionsByDimensionLabel = { coa: {}, partyType: {} };
     dimensionLabels.coas.reduce( ( map, coa ) => {
         map.coa[ coa ] = d3.select( plotSvg )
@@ -273,6 +274,21 @@ function initializeMouseHandlers( dimensionLabels, plotData, config, tickPositio
         selections.partyType
             .attr( 'fill', highlightColor );
 
+        const activeDatum = selections.coa
+            .filter( d => d.partyType === nearestLabels.partyType.text );
+        if ( activeDatum._groups[0].length > 0 ) {
+            activeDatum.each(
+                ( d, i, nodeList ) => {
+                    const circleBox = nodeList[ i ].getBoundingClientRect();
+                    percentileElement.style.display = 'block';
+                    percentileElement.innerHTML = d.count;
+                    percentileElement.style.top = circleBox.top + circleBox.height / 2 + 'px';
+                    percentileElement.style.left = circleBox.left + circleBox.width / 2 + 'px';
+                } );
+        }else{
+            percentileElement.style.display = 'none';
+        }
+
         activeSelections = selections;
 
     };
@@ -297,6 +313,33 @@ function initializeMouseHandlers( dimensionLabels, plotData, config, tickPositio
     } );
 }
 
+function percentRank( array, n ) {
+    let L = 0;
+    let S = 0;
+    let N = array.length;
+
+    for ( var i = 0; i < array.length; i++ ) {
+        if ( array[ i ] < n ) {
+            L += 1
+        } else if ( array[ i ] === n ) {
+            S += 1
+        } else {
+
+        }
+    }
+
+    return 100 * (L + (0.5 * S)) / N;
+}
+
+
+function populatePercentRanks( plotData ) {
+    const counts = plotData.map( d => d.count ).filter( c => c );
+    plotData.forEach( ( d ) => {
+        d.percentRank = percentRank( counts, d.count );
+    } );
+    console.log( plotData );
+}
+
 function plot( rawData ) {
     const dimensionLabels = getDimensionLabels( rawData );
     const plotData = dimensionLabels.partyTypes.reduce( ( results, partyType ) => {
@@ -305,6 +348,7 @@ function plot( rawData ) {
         coas.forEach( coa => results.push( { coa, partyType, count: coaCounts[ coa ] } ) );
         return results;
     }, [] );
+    populatePercentRanks( plotData );
 
     const config = { margin: { left: 300, right: 10, top: 30, bottom: 300 } };
     const plotComponents = initializePlot( dimensionLabels, config );

@@ -7,6 +7,7 @@
         body, html {
             margin: 0px;
             height: 100%;
+            font-family: sans-serif;
         }
 
         .plot-container {
@@ -40,10 +41,9 @@
             z-index: 1;
         }
 
-        .y-axis-container::before {
-            content: ' ';
+        .y-axis-container-background {
             display: block;
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 300px;
@@ -59,7 +59,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 310px;
+            height: 315px;
             background-color: #fff;
             opacity: 0.9;
             z-index: 1;
@@ -134,19 +134,27 @@
         }
 
         .x-axis .tick.active rect {
-            transform: rotate(90deg) translate(5px, -0.5em) scale(2.2);
+            transform: rotate(90deg) translate(5px, -0.5em) scale(3);
         }
 
         .y-axis .tick.active rect {
             transform: rotate(-180deg) translate(5px, -0.85em) scale(3);
         }
-
+        .info-box {
+            font-size: 24px;
+            position: fixed;
+            padding: 5px;
+            background-color: rgba(255,255,255,0.5);
+            z-index: 3;
+        }
 
     </style>
 </head>
 <body>
 <div class="plot-container">
     <svg width="1600" height="800"></svg>
+</div>
+<div class="y-axis-container-background">
 </div>
 <div class="y-axis-container">
     <svg width="1600" height="800"></svg>
@@ -155,6 +163,8 @@
 </div>
 <div class="x-axis-container">
     <svg width="1600" height="800"></svg>
+</div>
+<div class="info-box">
 </div>
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.9.2/d3.min.js"></script>
